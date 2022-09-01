@@ -23,6 +23,8 @@ struct command
 {
     char name[40];
     int minutes_to_complete;
+    int min_schedule;
+    int hour_schedule;
 };
 
 int total_commands = 0;
@@ -58,10 +60,6 @@ int process_month(char monthStr[])
     }
     else
     {
-        for (int i = 0; i < length; i++)
-        {
-            monthStr[i] = tolower(monthStr[i]);
-        }
         for (int i = 0; i < NUM_MONTHS; i++)
         {
             if (strcmp(monthStr, months[i]) == 0)
