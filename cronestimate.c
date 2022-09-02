@@ -8,6 +8,7 @@
 // time.h starts counting from 0
 #define CURRENT_YEAR (2022 - 1900 + 1)
 #define NUM_MONTHS 12
+#define NUM_WEEKDAYS 7
 
 #define MAX_MINS 59
 #define MAX_HOURS 23
@@ -72,6 +73,22 @@ int process_month(char monthStr[])
     }
     return month;
 }
+int parse_weekdays(char *weekday)
+{
+    if (isdigit(weekday[0]))
+    {
+        return atoi(weekday[0]);
+    }
+    char weekdays[NUM_WEEKDAYS][4] = {"sun", "mon", "tue", "wed", "thu", "fri", "sat"};
+    for (int i = 0; i < NUM_WEEKDAYS; i++)
+    {
+        if (strcmp(weekday, weekdays[i]) == 0)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
 void process_estimates(char *filename)
 {
     printf("Processing estimates\n");
@@ -126,6 +143,27 @@ void process_crontab(char *filename)
                 printf("%s\t", month);
                 printf("%s\t", weekday);
                 printf("%s found!\n", name);
+
+                if (minute[0] != '*')
+                {
+                    commands[i].minute = atoi(minute);
+                }
+                if (hour[0] != '*')
+                {
+                    commands[i].hour = atoi(hour);
+                }
+                if (day[0] != '*')
+                {
+                    commands[i].day = atoi(day);
+                }
+                if (month[0] != '*')
+                {
+                    commands[i].month = atoi(month);
+                }
+                if (weekday[i] != '*')
+                {
+                    commands[i].week_day = parse_weekdays(weekday);
+                }
                 break;
             }
         }
