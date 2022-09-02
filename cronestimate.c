@@ -22,7 +22,7 @@ struct command
 {
     char name[40];
     int minutes_to_complete;
-    int min;
+    int minute;
     int hour;
     int day;
     int month;
@@ -134,7 +134,7 @@ void init_commands()
 {
     for (int i = 0; i < total_commands; i++)
     {
-        commands[i].min = -1;
+        commands[i].minute = -1;
         commands[i].hour = -1;
         commands[i].day = -1;
         commands[i].month = -1;
@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < total_commands; i++)
     {
-        printf("%s runs for %i\t\t mins: %i\t  hours: %i\t days: %i \t month: %i \t weekdays: %i\n", commands[i].name, commands[i].minutes_to_complete, commands[i].min, commands[i].hour, commands[i].day, commands[i].month, commands[i].week_day);
+        printf("%s runs for %i\t\t mins: %i\t  hours: %i\t days: %i \t month: %i \t weekdays: %i\n", commands[i].name, commands[i].minutes_to_complete, commands[i].minute, commands[i].hour, commands[i].day, commands[i].month, commands[i].week_day);
     }
 
     exit(EXIT_SUCCESS);
