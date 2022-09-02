@@ -118,14 +118,16 @@ void process_crontab(char *filename)
         for (int i = 0; i < total_commands; i++)
 
         {
-            printf("%s\t", minute);
-            printf("%s\t", hour);
-            printf("%s\t", day);
-            printf("%s\t", month);
-            printf("%s\t", weekday);
-            printf("%s found!\n", name);
-
-            break;
+            if (strcmp(name, commands[i].name) == 0)
+            {
+                printf("%s\t", minute);
+                printf("%s\t", hour);
+                printf("%s\t", day);
+                printf("%s\t", month);
+                printf("%s\t", weekday);
+                printf("%s found!\n", name);
+                break;
+            }
         }
     }
     printf("Processing complete!\n\n");
