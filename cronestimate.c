@@ -28,6 +28,7 @@ struct command
     int day;
     int month;
     int week_day;
+    int times_invoked;
 };
 
 int total_commands = 0;
@@ -77,7 +78,7 @@ int parse_weekdays(char *weekday)
 {
     if (isdigit(weekday[0]))
     {
-        return atoi(weekday[0]);
+        return atoi(&weekday[0]);
     }
     char weekdays[NUM_WEEKDAYS][4] = {"sun", "mon", "tue", "wed", "thu", "fri", "sat"};
     for (int i = 0; i < NUM_WEEKDAYS; i++)
@@ -179,7 +180,70 @@ void init_commands()
         commands[i].day = -1;
         commands[i].month = -1;
         commands[i].week_day = -1;
+        commands[i].times_invoked = 0;
     }
+}
+
+void sim_processes(int month)
+{
+
+    struct tm tm;
+    mktime(&tm);
+
+    tm.tm_year = CURRENT_YEAR;
+    tm.tm_mon = month;
+
+    tm.tm_min = 0;
+    tm.tm_hour = 0;
+    tm.tm_mday = 1;
+    bool simulation_complete = false;
+    printf("month = %i\n", tm.tm_mon);
+    printf("hour before = %i\n", tm.tm_hour);
+    mktime(&tm);
+    printf("month after = %i\n", tm.tm_mon);
+    printf("hour after= %i\n", tm.tm_hour);
+    int total = 0;
+    while (!simulation_complete)
+    {
+        for (int i = 0; i < total_commands; i++)
+        {
+            int day = commands[i].day;
+            if (day != -1 && day != tm.tm_mday)
+            {
+                break;
+            }
+            int hour = commands[i].hour;
+            // printf("%i", hour);
+            // printf("%s", commands[i].name);
+            if (hour != -1 && hour != tm.tm_hour)
+            {
+                break;
+            }
+            int minute = commands[i].minute;
+            if (minute != -1 && minute != tm.tm_min)
+            {
+                break;
+            }
+
+            // int minute = commands[i].minute;
+            // if (minute != -1 && minute != tm.tm_min)
+            // {
+            //     break;
+            // }
+            total++;
+            commands[i].times_invoked++;
+        }
+        // process
+        tm.tm_min++;
+        mktime(&tm);
+        printf("%i %i\n", tm.tm_min, tm.tm_hour);
+        // printf("hour = %i\n", tm.tm_hour);
+        simulation_complete = (tm.tm_mon != month);
+        // printf("weekday = %i\n", tm.tm_wday);
+        // break;
+    }
+    printf("month has been simulated!\n");
+    printf("%i", total);
 }
 
 int main(int argc, char *argv[])
@@ -204,6 +268,12 @@ int main(int argc, char *argv[])
     for (int i = 0; i < total_commands; i++)
     {
         printf("%s runs for %i\t\t mins: %i\t  hours: %i\t days: %i \t month: %i \t weekdays: %i\n", commands[i].name, commands[i].minutes_to_complete, commands[i].minute, commands[i].hour, commands[i].day, commands[i].month, commands[i].week_day);
+    }
+    printf("\n\n");
+    sim_processes(month);
+    for (int i = 0; i < total_commands; i++)
+    {
+        printf("%s ran %i times\n", commands[i].name, commands[i].times_invoked);
     }
 
     exit(EXIT_SUCCESS);
