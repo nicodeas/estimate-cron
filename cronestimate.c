@@ -199,50 +199,13 @@ void sim_processes(int month)
     bool simulation_complete = false;
     printf("month = %i\n", tm.tm_mon);
     printf("hour before = %i\n", tm.tm_hour);
-    mktime(&tm);
-    printf("month after = %i\n", tm.tm_mon);
-    printf("hour after= %i\n", tm.tm_hour);
     int total = 0;
     while (!simulation_complete)
     {
-        for (int i = 0; i < total_commands; i++)
-        {
-            int day = commands[i].day;
-            if (day != -1 && day != tm.tm_mday)
-            {
-                break;
-            }
-            int hour = commands[i].hour;
-            // printf("%i", hour);
-            // printf("%s", commands[i].name);
-            if (hour != -1 && hour != tm.tm_hour)
-            {
-                break;
-            }
-            int minute = commands[i].minute;
-            if (minute != -1 && minute != tm.tm_min)
-            {
-                break;
-            }
-
-            // int minute = commands[i].minute;
-            // if (minute != -1 && minute != tm.tm_min)
-            // {
-            //     break;
-            // }
-            total++;
-            commands[i].times_invoked++;
-        }
-        // process
         tm.tm_min++;
         mktime(&tm);
-        printf("%i %i\n", tm.tm_min, tm.tm_hour);
-        // printf("hour = %i\n", tm.tm_hour);
-        simulation_complete = (tm.tm_mon != month);
-        // printf("weekday = %i\n", tm.tm_wday);
-        // break;
+        simulation_complete = (month != tm.tm_mon);
     }
-    printf("month has been simulated!\n");
     printf("%i", total);
 }
 
