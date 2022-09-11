@@ -1,59 +1,50 @@
 #include <stdio.h> 
 #include <stdlib.h>
 #include <string.h>
-struct program{
+#include <time.h>
+#include <ctype.h>
+struct proc{ 
     char name[40];
-    char type[3];
-    int time;  
+    char day[4]; 
+    char wkday[4]; 
+    char mon[4]; 
+    char hr[4]; 
+    char min[4]; 
+    int len;
+    time_t end;
 };
-int compare(const void *s1, const void *s2){
-    struct program *p1 = (struct program *) s1; 
-    struct program *p2 = (struct program *) s2; 
-    if (p1->time > p2->time || p1->time == -1){
+void printProc(struct proc p){ 
+    printf("NAME %s WKDAY %s MIN %s HR %s DAY %s MONTH %s LEN %d\n",p.name,p.wkday,p.min,p.hr,p.day,p.mon,p.len);
+}
+int eq(char *one, int time){
+    if (strcmp(one,"*")==0){
         return 1; 
-    } else if (p1->time == p2->time){
-        return 0; 
-    } else { 
-        return -1; 
+    } else if (atoi(one)==time){
+        return 1;
     }
+    return 0;
 }
-// How do I pass a mutable 3D array 
-int analyse_line(char *line, char *storage_arr[50]){
-    if (line[0]!='#'){
-        char *split;
-        int ind = 0; 
-        split = strtok(line," \n");
-        while (split!=NULL){
-            printf("Arr %d: %s\n",ind++,split);
-            // storage_arr[*line_num][ind] = *split; 
-            split = strtok(NULL," "); 
-        }
-    } else {
-        printf("Comment\n");
-    } 
-}
-int get_el(char cont[], char *days[],int len){
-    int ret = -1;
+void get_num(char *cont, char *arr[],int len){
+    printf("NUM OF %s\n" ,cont);
     for (int i = 0;i<len;i++){
-        printf("day %d is %s" ,i, days[i]);
-        if (strcmp(cont,days[i])){
-            ret=i;
+        if (strcmp(cont,arr[i])==0){
+            printf("convert %s to %d\n",cont,i);
+            sprintf(cont,"%d",i);
         }
     }
-    return ret; 
 }
 int main(int argc, char *argv[]){
     if (argc != 4){
         printf("Requires 3 arguments: month, crontab file and estimates file.");
         exit(4);
     }
-    int MAX_LINES = 60; 
-    char est_data[MAX_LINES][2][50];
-    int est_ind = 0; 
-    char cron_data[MAX_LINES][6][50];
+    int MAX_LINES = 20;
+    int running = 0;  
+    int max_proc = 0;
+    struct proc cmds[MAX_LINES];
     int cron_ind = 0; 
     //Adjust below for days of the week - find 2* and 5mon
-    int defaults[] = {60,24,-1,1,7};
+    int cmd_counts[MAX_LINES];
     char *days[] = {"sun","mon","tue","wed","thu","fri","sat"};
     char *mons[] = {"jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"};
     //replace with num weeks 
@@ -63,48 +54,19 @@ int main(int argc, char *argv[]){
         printf("Month must be a valid integer between 0 and 11");
         exit(1);
     }
-    FILE *est;
-    if (est = fopen(argv[3],"r")){
-        printf("\nOpening %s:\n",argv[3]);
-        char cur[60]; 
-        while (fgets(cur,60,est)!=NULL){
-            // printf("%s",cur);
-            // analyse_line(cur,est_data[est_ind++]);
-            if (cur[0]!='#'){
-                char *split;
-                int ind = 0; 
-                split = strtok(cur," \n");
-                while (split!=NULL){
-                    printf("Arr %d: %s\n",ind,split);
-                    strcpy(est_data[est_ind][ind++],split);
-                    split = strtok(NULL," \n"); 
-                }
-                est_ind++;
-            } else {
-                printf("Comment\n");
-            } 
-        }
-        fclose(est); 
-    } else { 
-        printf("Specified estimates file does not exist.\n");
-        exit(2);
-    }
-    
     FILE *cron; 
     if (cron = fopen(argv[2],"r")){
         printf("\nOpening %s:\n",argv[2]);
-        char cur[100]; 
-        while (fgets(cur,100,est)!=NULL){
+        char cur[60]; 
+        while (fgets(cur,60,cron)!=NULL){
             if (cur[0]!='#'){
-                char *split;
-                int ind = 0; 
-                split = strtok(cur," \n");
-                while (split!=NULL && ind<6){
-                    strcpy(cron_data[cron_ind][ind++],split);
-                    printf("Arr %d: %s\n",ind-1,cron_data[cron_ind][ind-1]);
-                    split = strtok(NULL," \n"); 
-                }                   
-                cron_ind++; 
+                struct proc process;
+                sscanf(cur,"%s %s %s %s %s %s",process.min,process.hr,process.day,process.mon,process.wkday,process.name);
+                get_num(process.mon,mons,12);
+                get_num(process.wkday,days,7);
+                cmd_counts[cron_ind] = 0; 
+                cmds[cron_ind++] = process;
+                printProc(cmds[cron_ind-1]);
             } else {
                 printf("Comment\n");
             } 
@@ -114,52 +76,96 @@ int main(int argc, char *argv[]){
         printf("Specified crontab file does not exist.");
         exit(3);
     }
-    printf("PRINTING EST\n");
-    for (int i = 0;i<est_ind;i++){
-        for (int j = 0;j<2;j++){
-            printf(" %s ", est_data[i][j]);
-        }
-        printf("\n");
-    }
-    printf("PRINTING CRON\n");
-    for (int i = 0;i<cron_ind;i++){
-        for (int j = 0;j<6;j++){
-            printf(" %s ",cron_data[i][j]);
-        }
-        printf("\n");
-    }
-    //FIND MOST COMMON
-    int num = 0;
-    int max = -1; 
-    struct program exec[40]; 
-    char *task;  
-    for (int i = 0;i<cron_ind;i++){
-        int n=1; 
-        if (strcmp(cron_data[i][3],"*")!=0 && atoi(cron_data[i][3]) != month){
-            printf("%d is not the right month for month %d!",atoi(cron_data[i][3]),month);
-            n=0;
-        } 
-        for (int j = 0;j<5;j++){
-            int cur = 1; 
-            if (!strcmp(cron_data[i][j],"*")){
-                if (j == 2){
-                    cur = 4;//mon_len[month];
-                } else{ 
-                    cur = defaults[j]; 
+    FILE *est;
+    if (est = fopen(argv[3],"r")){
+        printf("\nOpening %s:\n",argv[3]);
+        char cur[60]; 
+        while (fgets(cur,60,est)!=NULL){
+            if (cur[0]!='#'){
+                char name[60];
+                int len; 
+                sscanf(cur,"%s %d",name,&len); 
+                for (int i = 0; i < cron_ind;i++){
+                    if (strcmp(cmds[i].name,name)==0){
+                        cmds[i].len = len;
+                    }
                 }
+            } else {
+                printf("Comment\n");
             } 
-            n *= cur; 
         }
-        num += n; 
-        if (n > max){
-            task = cron_data[i][5];   
-            max = n;   
-        }
-        printf("%d %s\n",n,cron_data[i][5]);
+        fclose(est); 
+    } else { 
+        printf("Specified estimates file does not exist.\n");
+        exit(2);
     }
-    printf("%s occurs the most frequently, for a total of %d times!\n",task,max);
-    printf("Overall, there a total of %d processes.\n",num);
+    int m = month;
+    // for (int m = 0;m<12;m++){
+        for (int d = 1;d<=mon_len[m];d++){
+            for (int hr = 0; hr<24;hr++){
+                for (int min = 0;min<60;min++){
+                    struct tm str_time;
+                    time_t cur_t;
+                    str_time.tm_year = 2022-1900;
+                    str_time.tm_mon = m;
+                    str_time.tm_mday = d;
+                    str_time.tm_hour = hr;
+                    str_time.tm_min = min;
+                    str_time.tm_sec = 0;
+                    str_time.tm_isdst = 0;
+                    cur_t = mktime(&str_time);
+                    char *wkday = days[str_time.tm_wday];
+                    int cur_time[] = {str_time.tm_min,str_time.tm_hour,str_time.tm_mday,str_time.tm_mon,str_time.tm_wday};
+                    for (int i = 0;i<cron_ind;i++){
+                        if (difftime(cmds[i].end,cur_t)==0){
+                            printf("\nPROCESS %s ENDED\n",cmds[i].name);
+                            printf(ctime(&cur_t));
+                            printf("\n");
+                            running--;
+                        }
+                        int count = 0;
+                        struct proc p = cmds[i];
+                        // printProc(p);
+                        int *proc_match[] = {p.min,p.hr,p.day,p.mon,p.wkday};
+                        for (int j = 0;j<5;j++){
+                            if (eq(proc_match[j],cur_time[j])==1){
+                                count++;
+                            }
+                        }
+                        // printf("\n");
+                        if (count == 5){ 
+                            // printf(ctime(&cur_t));
+                            cmd_counts[i]++;
+                            str_time.tm_min += cmds[i].len;
+                            cur_t =  mktime(&str_time);
+                            cmds[i].end = cur_t;
+                            running++; 
+                            if (running>max_proc){
+                                max_proc = running;
+                            }
+                            printProc(p);
+                            printf("Ends at");
+                            printf(ctime(&cur_t));
+                            str_time.tm_min -=cmds[i].len;
+                        }
+                        
 
-
+                    }
+                }
+            }
+        }
+    //}
+    int max = 0;
+    int total = 0;
+    char *name; 
+    for (int i = 0;i<cron_ind;i++){ 
+        printf("%s executed %d times.\n",cmds[i].name,cmd_counts[i]);
+        total += cmd_counts[i];
+        if (cmd_counts[i]>max){
+            max = cmd_counts[i];
+            name = &cmds[i].name;
+        }
+    }
+    printf("%s executed the most times, with %d executions. Overall, there were %d processes run. There were at most %d concurrent processes.\n",name,max,total,max_proc);
     return 0; 
 }
