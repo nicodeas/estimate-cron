@@ -13,6 +13,11 @@ struct proc{
     int len;
     time_t end;
 };
+struct queued{ 
+    char name[40]; 
+    time_t end_time; 
+    int done; 
+};
 void printProc(struct proc p){ 
     printf("NAME %s WKDAY %s MIN %s HR %s DAY %s MONTH %s LEN %d\n",p.name,p.wkday,p.min,p.hr,p.day,p.mon,p.len);
 }
@@ -41,18 +46,23 @@ int main(int argc, char *argv[]){
     int MAX_LINES = 20;
     int running = 0;  
     int max_proc = 0;
+    int num_procs = 0; 
     struct proc cmds[MAX_LINES];
-    int cron_ind = 0; 
-    //Adjust below for days of the week - find 2* and 5mon
+    struct queued active[MAX_LINES];
     int cmd_counts[MAX_LINES];
     char *days[] = {"sun","mon","tue","wed","thu","fri","sat"};
     char *mons[] = {"jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"};
-    //replace with num weeks 
     int mon_len[] = {31,28,31,30,31,30,31,31,30,31,30,31}; 
-    int month = atoi(argv[1]);
+    char *char_mon = argv[1]; 
+    get_num(char_mon,mons,12);
+    int month = atoi(char_mon);
     if ( month > 12 || month < 0){
         printf("Month must be a valid integer between 0 and 11");
         exit(1);
+    }
+    for (int i =0;i<MAX_LINES;i++){ 
+        struct queued ph = {"null",(time_t) (-1),1};
+        active[i] = ph;
     }
     FILE *cron; 
     if (cron = fopen(argv[2],"r")){
@@ -64,9 +74,9 @@ int main(int argc, char *argv[]){
                 sscanf(cur,"%s %s %s %s %s %s",process.min,process.hr,process.day,process.mon,process.wkday,process.name);
                 get_num(process.mon,mons,12);
                 get_num(process.wkday,days,7);
-                cmd_counts[cron_ind] = 0; 
-                cmds[cron_ind++] = process;
-                printProc(cmds[cron_ind-1]);
+                cmd_counts[num_procs] = 0; 
+                cmds[num_procs++] = process;
+                printProc(cmds[num_procs-1]);
             } else {
                 printf("Comment\n");
             } 
@@ -85,7 +95,7 @@ int main(int argc, char *argv[]){
                 char name[60];
                 int len; 
                 sscanf(cur,"%s %d",name,&len); 
-                for (int i = 0; i < cron_ind;i++){
+                for (int i = 0; i < num_procs;i++){
                     if (strcmp(cmds[i].name,name)==0){
                         cmds[i].len = len;
                     }
@@ -116,35 +126,46 @@ int main(int argc, char *argv[]){
                     cur_t = mktime(&str_time);
                     char *wkday = days[str_time.tm_wday];
                     int cur_time[] = {str_time.tm_min,str_time.tm_hour,str_time.tm_mday,str_time.tm_mon,str_time.tm_wday};
-                    for (int i = 0;i<cron_ind;i++){
-                        if (difftime(cmds[i].end,cur_t)==0){
-                            printf("\nPROCESS %s ENDED\n",cmds[i].name);
+                    for (int j = 0;j<MAX_LINES;j++){
+                        if (difftime(active[j].end_time,cur_t)==0){
+                            active[j].done = 1; 
+                            printf("\nPROCESS %s ENDED\n",active[j].name);
                             printf(ctime(&cur_t));
                             printf("\n");
                             running--;
                         }
+                    }
+                    for (int i = 0;i<num_procs;i++){
                         int count = 0;
                         struct proc p = cmds[i];
-                        // printProc(p);
                         int *proc_match[] = {p.min,p.hr,p.day,p.mon,p.wkday};
                         for (int j = 0;j<5;j++){
                             if (eq(proc_match[j],cur_time[j])==1){
                                 count++;
                             }
                         }
-                        // printf("\n");
                         if (count == 5){ 
-                            // printf(ctime(&cur_t));
                             cmd_counts[i]++;
                             str_time.tm_min += cmds[i].len;
                             cur_t =  mktime(&str_time);
-                            cmds[i].end = cur_t;
+                            // cmds[i].end = cur_t;
+                            for (int j = 0;j<MAX_LINES;j++){ 
+                                if (active[j].done){
+                                    printf("Overwrting %d\n",j);
+                                    time_t a = cur_t;
+                                    struct queued ph = {cmds[i].name, cur_t,0};  
+                                    ph.end_time = cur_t;
+                                    active[j] = ph;
+                                    printf(ctime(&ph.end_time));
+                                    break;
+                                }
+                            }
                             running++; 
                             if (running>max_proc){
                                 max_proc = running;
                             }
                             printProc(p);
-                            printf("Ends at");
+                            printf("Ends at ");
                             printf(ctime(&cur_t));
                             str_time.tm_min -=cmds[i].len;
                         }
@@ -158,12 +179,12 @@ int main(int argc, char *argv[]){
     int max = 0;
     int total = 0;
     char *name; 
-    for (int i = 0;i<cron_ind;i++){ 
+    for (int i = 0;i<num_procs;i++){ 
         printf("%s executed %d times.\n",cmds[i].name,cmd_counts[i]);
         total += cmd_counts[i];
         if (cmd_counts[i]>max){
             max = cmd_counts[i];
-            name = &cmds[i].name;
+            name = cmds[i].name;
         }
     }
     printf("%s executed the most times, with %d executions. Overall, there were %d processes run. There were at most %d concurrent processes.\n",name,max,total,max_proc);
