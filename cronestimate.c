@@ -10,16 +10,18 @@
 #define NUM_MONTHS 12
 #define NUM_WEEKDAYS 7
 
+#define MAX_MINS 59
+#define MAX_HOURS 23
+
 #define MAX_LINES 20
 #define MAX_CHARS 100
-#define MAX_COMMAND_NAME_LENGTH 40
 
 #define MAX_NUM_OF_COMMANDS 20
 #define MAX_CONCURRENT_PROCESSES 20
 
 struct command
 {
-    char name[MAX_COMMAND_NAME_LENGTH];
+    char name[40];
     int minutes_to_complete;
     int minute;
     int hour;
@@ -32,33 +34,32 @@ struct command
 struct process
 {
     int pid;
-    char name[MAX_COMMAND_NAME_LENGTH];
+    char name[40];
     time_t end_time;
     bool ended;
 };
 
 int total_commands = 0;
-int max_concurrent_processes = 0;
+int simulated_max = 0;
 int pid = 0;
-
 struct command commands[MAX_NUM_OF_COMMANDS];
 struct process processes[MAX_CONCURRENT_PROCESSES];
 
-int process_month(char month_string[])
+int process_month(char monthStr[])
 {
     // returns -1 if invalid month
     int month, length;
     bool numeric_month = true;
     char months[NUM_MONTHS][4] = {"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"};
     month = -1;
-    length = strlen(month_string);
+    length = strlen(monthStr);
     if (length > 3)
     {
         return -1;
     }
     for (int i = 0; i < length; i++)
     {
-        if (!isdigit(month_string[i]))
+        if (!isdigit(monthStr[i]))
         {
             numeric_month = false;
             break;
@@ -66,7 +67,7 @@ int process_month(char month_string[])
     }
     if (numeric_month)
     {
-        month = atoi(month_string);
+        month = atoi(monthStr);
         if (month < 0 || month > 11)
         {
             month = -1;
@@ -76,7 +77,7 @@ int process_month(char month_string[])
     {
         for (int i = 0; i < NUM_MONTHS; i++)
         {
-            if (strcmp(month_string, months[i]) == 0)
+            if (strcmp(monthStr, months[i]) == 0)
             {
                 month = i;
             }
@@ -137,7 +138,7 @@ void process_crontab(char *filename)
     {
         // struct command *curr;
 
-        char minute[5], hour[5], day[5], month[5], weekday[5], name[MAX_COMMAND_NAME_LENGTH];
+        char minute[5], hour[5], day[5], month[5], weekday[5], name[40];
         if (buffer[0] == '#')
         {
             continue;
@@ -256,10 +257,10 @@ void sim_processes(int month)
         for (int i = 0; i < total_commands; i++)
         {
             int running_processes = get_num_concurrent_processes();
-            if (running_processes > max_concurrent_processes)
+            if (running_processes > simulated_max)
             {
                 printf("New Max Concurrent Processes:%i\n\n", running_processes);
-                max_concurrent_processes = running_processes;
+                simulated_max = running_processes;
             }
             if (running_processes == MAX_CONCURRENT_PROCESSES)
             {
@@ -316,11 +317,11 @@ int main(int argc, char *argv[])
         printf("%s: Invalid month: %s\n", argv[0], argv[1]);
         exit(EXIT_FAILURE);
     }
-
-    init_commands();
-    init_processes();
+    printf("The month argument ingested is %i\n\n", month);
 
     process_estimates(argv[3]);
+    init_commands();
+    init_processes();
     process_crontab(argv[2]);
 
     for (int i = 0; i < total_commands; i++)
@@ -339,6 +340,6 @@ int main(int argc, char *argv[])
         }
     }
     printf("The command %s ran the most, with %d invocations\n", most_invoked_command.name, most_invoked_command.times_invoked);
-    printf("The most number of concurrent processes is %d\n", max_concurrent_processes);
+    printf("The most number of concurrent processes is %d\n", simulated_max);
     exit(EXIT_SUCCESS);
 }
