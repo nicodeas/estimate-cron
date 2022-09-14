@@ -5,23 +5,20 @@
 #include <ctype.h>
 #include <time.h>
 
-// time.h starts counting from 0
 #define CURRENT_YEAR (2022 - 1900)
 #define NUM_MONTHS 12
 #define NUM_WEEKDAYS 7
 
-#define MAX_MINS 59
-#define MAX_HOURS 23
-
 #define MAX_LINES 20
 #define MAX_CHARS 100
+#define MAX_NAME_LEN 40
 
 #define MAX_NUM_OF_COMMANDS 20
 #define MAX_CONCURRENT_PROCESSES 20
 
 struct command
 {
-    char name[40];
+    char name[MAX_NAME_LEN];
     int minutes_to_complete;
     int minute;
     int hour;
@@ -34,13 +31,13 @@ struct command
 struct process
 {
     int pid;
-    char name[40];
+    char name[MAX_NAME_LEN];
     time_t end_time;
     bool ended;
 };
 
 int total_commands = 0;
-int simulated_max = 0;
+int max_concurrent_processes = 0;
 int pid = 0;
 struct command commands[MAX_NUM_OF_COMMANDS];
 struct process processes[MAX_CONCURRENT_PROCESSES];
@@ -136,9 +133,8 @@ void process_crontab(char *filename)
     }
     while (fgets(buffer, MAX_CHARS, fp) != NULL)
     {
-        // struct command *curr;
 
-        char minute[5], hour[5], day[5], month[5], weekday[5], name[40];
+        char minute[5], hour[5], day[5], month[5], weekday[5], name[MAX_NAME_LEN];
         if (buffer[0] == '#')
         {
             continue;
@@ -212,7 +208,7 @@ void end_processes(time_t current_time)
         if (difftime(processes[i].end_time, current_time) == 0 && !processes[i].ended)
         {
             processes[i].ended = true;
-            printf("Process %s (PID %i) ended at %s\n\n", processes[i].name, processes[i].pid, ctime(&current_time));
+            printf("%s%s (PID %i) ended!\n\n", ctime(&current_time), processes[i].name, processes[i].pid);
             processes[i].pid = -1;
             memset(&processes[i].end_time, 0, sizeof processes[i].end_time);
         }
@@ -231,7 +227,7 @@ int get_num_concurrent_processes()
     return num_processes;
 }
 
-void sim_processes(int month)
+void simultate(int month)
 {
 
     struct tm tm;
@@ -257,10 +253,10 @@ void sim_processes(int month)
         for (int i = 0; i < total_commands; i++)
         {
             int running_processes = get_num_concurrent_processes();
-            if (running_processes > simulated_max)
+            if (running_processes > max_concurrent_processes)
             {
                 printf("New Max Concurrent Processes:%i\n\n", running_processes);
-                simulated_max = running_processes;
+                max_concurrent_processes = running_processes;
             }
             if (running_processes == MAX_CONCURRENT_PROCESSES)
             {
@@ -286,7 +282,7 @@ void sim_processes(int month)
                         pid++;
                         processes[j].pid = pid;
                         processes[j].ended = false;
-                        printf("Process: %s (PID %i) started at %s", processes[j].name, processes[j].pid, ctime(&current_time));
+                        printf("%s%s (PID %i) started!\n\n", ctime(&current_time), processes[j].name, processes[j].pid);
                         break;
                     }
                 }
@@ -329,7 +325,7 @@ int main(int argc, char *argv[])
         printf("%s runs for %i\t\t mins: %i\t  hours: %i\t days: %i \t month: %i \t weekdays: %i\n", commands[i].name, commands[i].minutes_to_complete, commands[i].minute, commands[i].hour, commands[i].day, commands[i].month, commands[i].week_day);
     }
     printf("\n\n");
-    sim_processes(month);
+    simultate(month);
     struct command most_invoked_command;
     for (int i = 0; i < total_commands; i++)
     {
@@ -339,7 +335,8 @@ int main(int argc, char *argv[])
             most_invoked_command = commands[i];
         }
     }
+    printf("\n\n");
     printf("The command %s ran the most, with %d invocations\n", most_invoked_command.name, most_invoked_command.times_invoked);
-    printf("The most number of concurrent processes is %d\n", simulated_max);
+    printf("The most number of concurrent processes is %d\n", max_concurrent_processes);
     exit(EXIT_SUCCESS);
 }
