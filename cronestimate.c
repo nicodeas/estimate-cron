@@ -31,8 +31,19 @@ struct command
     int times_invoked;
 };
 
+struct process
+{
+    int pid;
+    char name[40];
+    time_t end_time;
+    bool ended;
+};
+
 int total_commands = 0;
+int simulated_max = 0;
+int pid = 0;
 struct command commands[MAX_NUM_OF_COMMANDS];
+struct process processes[MAX_CONCURRENT_PROCESSES];
 
 int process_month(char monthStr[])
 {
@@ -110,6 +121,7 @@ void process_estimates(char *filename)
         printf("%s:\t%i minutes\n", commands[total_commands].name, commands[total_commands].minutes_to_complete);
         total_commands++;
     }
+    fclose(fp);
     printf("Processing complete!\n\n");
 }
 void process_crontab(char *filename)
@@ -169,7 +181,8 @@ void process_crontab(char *filename)
             }
         }
     }
-    printf("Processing complete!\n\n");
+    fclose(fp);
+    printf("Crontab processed!\n\n");
 }
 void init_commands()
 {
@@ -183,13 +196,38 @@ void init_commands()
         commands[i].times_invoked = 0;
     }
 }
+void init_processes()
+{
+    for (int i = 0; i < MAX_CONCURRENT_PROCESSES; i++)
+    {
+        processes[i].pid = -1;
+        processes[i].ended = false;
+    }
+}
+int concurrent_processes(time_t current_time)
+{
+    int num_processes = 0;
+    for (int i = 0; i < MAX_CONCURRENT_PROCESSES; i++)
+    {
+        if (processes[i].end_time >= current_time)
+        {
+            // printf("CONCURRENT PROCESSES DETECTED!!\n");
+            num_processes++;
+        }
+        else if (processes[i].pid > 0 && (processes[i].ended == false))
+        {
+            processes[i].ended = true;
+            printf("Process: %s with PID %i has ended!\n\n", processes[i].name, processes[i].pid);
+        }
+    }
+    return num_processes;
+}
 
 void sim_processes(int month)
 {
 
     struct tm tm;
-    // mktime(&tm);
-
+    memset(&tm, 0, sizeof tm);
     tm.tm_year = CURRENT_YEAR;
     tm.tm_mon = month;
 
@@ -197,7 +235,7 @@ void sim_processes(int month)
     tm.tm_hour = 0;
     tm.tm_mday = 1;
     bool simulation_complete = false;
-    mktime(&tm);
+    time_t current_time = mktime(&tm);
     int total = 0;
 
     while (!simulation_complete)
@@ -208,22 +246,48 @@ void sim_processes(int month)
         day = tm.tm_mday;
         hour = tm.tm_hour;
         minute = tm.tm_min;
+        int process_count = concurrent_processes(current_time);
+        if (process_count > simulated_max)
+        {
+            printf("New Max Concurrent Processes:%i\n\n", process_count);
+            simulated_max = process_count;
+        }
         for (int i = 0; i < total_commands; i++)
         {
             if ((commands[i].week_day == -1 || commands[i].week_day == weekday) && (commands[i].day == -1 || commands[i].day == day) && (commands[i].hour == -1 || commands[i].hour == hour) && (commands[i].minute == -1 || commands[i].minute == minute) && (commands[i].month == -1 || commands[i].month == month))
             {
 
+                for (int j = 0; j < MAX_CONCURRENT_PROCESSES; ++j)
+                {
+                    if (processes[j].end_time < current_time)
+                    {
+                        strcpy(processes[j].name, commands[i].name);
+                        struct tm end_time;
+                        memset(&end_time, 0, sizeof end_time);
+                        end_time.tm_min = tm.tm_min + commands[i].minutes_to_complete;
+                        end_time.tm_mday = tm.tm_mday;
+                        end_time.tm_hour = tm.tm_hour;
+                        end_time.tm_mon = tm.tm_mon;
+                        end_time.tm_year = tm.tm_year;
+                        processes[i].end_time = mktime(&end_time);
+                        pid++;
+                        processes[j].pid = pid;
+                        processes[j].ended = false;
+                        printf("Process: %s started with pid %i\n\n", processes[j].name, processes[j].pid);
+                        break;
+                    }
+                }
                 commands[i].times_invoked++;
             }
         }
 
         tm.tm_min++;
         total++;
-        mktime(&tm);
+        current_time = mktime(&tm);
         simulation_complete = (tm.tm_mon != month);
     }
-    printf("month has been simulated!\n");
-    printf("%i\n", total);
+    printf("Total minutes simulated:%i\n", total);
+    printf("Simulation Complete!\n\n");
 }
 
 int main(int argc, char *argv[])
@@ -251,10 +315,16 @@ int main(int argc, char *argv[])
     }
     printf("\n\n");
     sim_processes(month);
+    struct command most_invoked_command;
     for (int i = 0; i < total_commands; i++)
     {
         printf("%s ran %i times\n", commands[i].name, commands[i].times_invoked);
+        if (commands[i].times_invoked > most_invoked_command.times_invoked)
+        {
+            most_invoked_command = commands[i];
+        }
     }
-
+    printf("The command %s ran the most, with %d invocations\n", most_invoked_command.name, most_invoked_command.times_invoked);
+    printf("The most number of concurrent processes is %d\n", simulated_max);
     exit(EXIT_SUCCESS);
 }
