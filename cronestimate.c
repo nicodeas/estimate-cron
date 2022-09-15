@@ -13,12 +13,11 @@
 #define NUM_MONTHS 12
 #define NUM_WEEKDAYS 7
 
-#define MAX_LINES 20
 #define MAX_CHARS 100 + 1   // add 1 for null byte
 #define MAX_NAME_LEN 40 + 1 // add 1 for null byte
 
 #define MAX_NUM_OF_COMMANDS 20
-#define MAX_CONCURRENT_PROCESSES 20
+#define MAX_ALLOWED_CONCURRENT_PROCESSES 20
 
 struct command
 {
@@ -46,7 +45,7 @@ int current_running_processes = 0;
 int pid = 0;
 
 struct command commands[MAX_NUM_OF_COMMANDS];
-struct process processes[MAX_CONCURRENT_PROCESSES];
+struct process processes[MAX_ALLOWED_CONCURRENT_PROCESSES];
 
 int process_month(char monthStr[])
 {
@@ -265,7 +264,7 @@ void init_commands()
 
 void init_processes()
 {
-    for (int i = 0; i < MAX_CONCURRENT_PROCESSES; i++)
+    for (int i = 0; i < MAX_ALLOWED_CONCURRENT_PROCESSES; i++)
     {
         processes[i].pid = -1;
         processes[i].ended = true;
@@ -274,7 +273,7 @@ void init_processes()
 
 void end_processes(time_t current_time)
 {
-    for (int i = 0; i < MAX_CONCURRENT_PROCESSES; i++)
+    for (int i = 0; i < MAX_ALLOWED_CONCURRENT_PROCESSES; i++)
     {
 
         if (difftime(processes[i].end_time, current_time) == 0 && !processes[i].ended)
@@ -313,15 +312,15 @@ void simultate(int month)
 
         for (int i = 0; i < total_commands; i++)
         {
-            if (current_running_processes == MAX_CONCURRENT_PROCESSES)
+            if (current_running_processes == MAX_ALLOWED_CONCURRENT_PROCESSES)
             {
-                printf("Max number of processes reached: %i\n", MAX_CONCURRENT_PROCESSES);
+                printf("Max number of processes reached: %i\n", MAX_ALLOWED_CONCURRENT_PROCESSES);
                 break;
             }
             if ((commands[i].week_day == -1 || commands[i].week_day == weekday) && (commands[i].day == -1 || commands[i].day == day) && (commands[i].hour == -1 || commands[i].hour == hour) && (commands[i].minute == -1 || commands[i].minute == minute) && (commands[i].month == -1 || commands[i].month == month))
             {
 
-                for (int j = 0; j < MAX_CONCURRENT_PROCESSES; ++j)
+                for (int j = 0; j < MAX_ALLOWED_CONCURRENT_PROCESSES; ++j)
                 {
                     if (processes[j].ended)
                     {
@@ -374,7 +373,6 @@ int main(int argc, char *argv[])
         printf("%s: Invalid month: %s\n", argv[0], argv[1]);
         exit(EXIT_FAILURE);
     }
-    printf("The month argument ingested is %i\n\n", month);
 
     init_commands();
     init_processes();
@@ -391,14 +389,13 @@ int main(int argc, char *argv[])
     struct command most_invoked_command;
     for (int i = 0; i < total_commands; i++)
     {
-        printf("%s ran %i times\n", commands[i].name, commands[i].times_invoked);
+        printf("%s: %i\n", commands[i].name, commands[i].times_invoked);
         if (commands[i].times_invoked > most_invoked_command.times_invoked)
         {
             most_invoked_command = commands[i];
         }
     }
     printf("\n");
-    printf("The command %s ran the most, with %d invocations\n", most_invoked_command.name, most_invoked_command.times_invoked);
-    printf("The most number of concurrent processes is %d\n", max_concurrent_processes);
+    printf("%s %i %i\n", most_invoked_command.name, most_invoked_command.times_invoked, max_concurrent_processes);
     exit(EXIT_SUCCESS);
 }
