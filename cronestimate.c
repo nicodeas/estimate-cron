@@ -160,6 +160,13 @@ void process_estimates(char *filename)
         {
             continue;
         }
+        if (buffer[0] == '\n' || buffer[0] == '\r')
+        {
+            printf("Invalid input in: %s\n", filename);
+            exit(EXIT_FAILURE);
+        }
+
+        // printf("%s\n", buffer);
         char name[MAX_NAME_LEN];
         char mins_str[MAX_NAME_LEN];
         // sscanf(buffer, "%s %s", commands[total_commands].name, &commands[total_commands].minutes_to_complete);
@@ -199,6 +206,11 @@ void process_crontab(char *filename)
     }
     while (fgets(buffer, MAX_CHARS, fp) != NULL)
     {
+        if (buffer[0] == '\n' || buffer[0] == '\r')
+        {
+            printf("Invalid input in: %s\n", filename);
+            exit(EXIT_FAILURE);
+        }
         bool command_exists = false;
         char minute[5], hour[5], day[5], month[5], weekday[5], name[MAX_NAME_LEN];
         if (buffer[0] == '#')
