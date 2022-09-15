@@ -96,7 +96,7 @@ int parse_weekdays(char *weekday)
         return weekday_num;
     }
     // all possible values
-    if (weekday[0] == '*')
+    if (weekday[0] == '*' && strlen(weekday) == 1)
     {
         return -1;
     }
@@ -113,6 +113,31 @@ int parse_weekdays(char *weekday)
     printf("Invalid weekday: %s\n", weekday);
     exit(EXIT_FAILURE);
 }
+
+bool validate_numerical_input(char *input_str, int lowerbound, int upperbound)
+{
+    if (input_str[0] == '*' && strlen(input_str) == 1)
+    {
+        return true;
+    }
+    for (int i = 0; i < strlen(input_str); i++)
+    {
+        if (!isdigit(input_str[i]))
+        {
+            return false;
+        }
+    }
+    int input = atoi(input_str);
+    if (input < lowerbound || input > upperbound)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
 void process_estimates(char *filename)
 {
     printf("Processing estimates\n");
@@ -130,11 +155,11 @@ void process_estimates(char *filename)
             continue;
         }
         sscanf(buffer, "%s%i", commands[total_commands].name, &commands[total_commands].minutes_to_complete);
-        printf("%s:\t%i minutes\n", commands[total_commands].name, commands[total_commands].minutes_to_complete);
+        printf("%s:\t\truns for %i minutes\n", commands[total_commands].name, commands[total_commands].minutes_to_complete);
         total_commands++;
     }
     fclose(fp);
-    printf("Processing complete!\n\n");
+    printf("Estimates processed!\n\n");
 }
 void process_crontab(char *filename)
 {
@@ -168,26 +193,47 @@ void process_crontab(char *filename)
                 printf("%s\t", weekday);
                 printf("%s found!\n", name);
 
-                if (minute[0] != '*')
+                if (validate_numerical_input(minute, 0, 59))
                 {
-                    commands[i].minute = atoi(minute);
+                    commands[i].minute = minute[0] == '*' ? -1 : atoi(minute);
                 }
-                if (hour[0] != '*')
+                else
                 {
-                    commands[i].hour = atoi(hour);
+                    printf("Invalid minute: %s\n", minute);
+                    exit(EXIT_FAILURE);
                 }
-                if (day[0] != '*')
+
+                if (validate_numerical_input(hour, 0, 23))
                 {
-                    commands[i].day = atoi(day);
+                    commands[i].hour = hour[0] == '*' ? -1 : atoi(hour);
                 }
-                if (month[0] != '*')
+                else
                 {
-                    commands[i].month = atoi(month);
+                    printf("Invalid hour: %s\n", hour);
+                    exit(EXIT_FAILURE);
                 }
-                if (weekday[i] != '*')
+
+                if (validate_numerical_input(day, 1, 31))
                 {
-                    commands[i].week_day = parse_weekdays(weekday);
+                    commands[i].day = day[0] == '*' ? -1 : atoi(day);
                 }
+                else
+                {
+                    printf("Invalid day: %s\n", day);
+                    exit(EXIT_FAILURE);
+                }
+
+                if (validate_numerical_input(month, 0, 11))
+                {
+                    commands[i].month = month[0] == '*' ? -1 : atoi(month);
+                }
+                else
+                {
+                    printf("Invalid month: %s\n", month);
+                    exit(EXIT_FAILURE);
+                }
+                // parse weekdays has its own error handling
+                commands[i].week_day = parse_weekdays(weekday);
                 break;
             }
         }
