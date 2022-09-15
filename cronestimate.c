@@ -396,6 +396,6 @@ int main(int argc, char *argv[])
         }
     }
     printf("\n");
-    printf("%s %i %i\n", most_invoked_command.name, most_invoked_command.times_invoked, max_concurrent_processes);
+    printf("%s %i %i\n", most_invoked_command.name, pid, max_concurrent_processes);
     exit(EXIT_SUCCESS);
 }
