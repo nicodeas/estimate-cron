@@ -105,7 +105,7 @@ void process_estimates(char *filename)
     char buffer[MAX_CHARS];
     if (fp == NULL)
     {
-        printf("invalid %s\n", filename);
+        printf("Invalid estimates file: %s\n", filename);
         exit(EXIT_FAILURE);
     }
     while (fgets(buffer, MAX_CHARS, fp) != NULL)
@@ -128,7 +128,7 @@ void process_crontab(char *filename)
     char buffer[MAX_CHARS];
     if (fp == NULL)
     {
-        printf("invalid %s\n", filename);
+        printf("Invalid crontab file: %s\n", filename);
         exit(EXIT_FAILURE);
     }
     while (fgets(buffer, MAX_CHARS, fp) != NULL)
