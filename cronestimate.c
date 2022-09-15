@@ -1,3 +1,7 @@
+//  CITS2002 Project 1 2022
+//  Student1:   22719855   MICHLIN   NICHOLAS
+//  Student2:   23126543   CHENG   DANIEL
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -84,6 +88,7 @@ int process_month(char monthStr[])
     }
     return month;
 }
+
 int parse_weekdays(char *weekday)
 {
     // weekday in range (0-6)
@@ -163,6 +168,7 @@ void process_estimates(char *filename)
     fclose(fp);
     printf("Estimates processed!\n\n");
 }
+
 void process_crontab(char *filename)
 {
     printf("Processing crontab\n");
@@ -243,6 +249,7 @@ void process_crontab(char *filename)
     fclose(fp);
     printf("Crontab processed!\n\n");
 }
+
 void init_commands()
 {
     for (int i = 0; i < total_commands; i++)
@@ -255,6 +262,7 @@ void init_commands()
         commands[i].times_invoked = 0;
     }
 }
+
 void init_processes()
 {
     for (int i = 0; i < MAX_CONCURRENT_PROCESSES; i++)
@@ -263,6 +271,7 @@ void init_processes()
         processes[i].ended = true;
     }
 }
+
 void end_processes(time_t current_time)
 {
     for (int i = 0; i < MAX_CONCURRENT_PROCESSES; i++)
@@ -304,12 +313,6 @@ void simultate(int month)
 
         for (int i = 0; i < total_commands; i++)
         {
-            int current_running_processes = 0;
-            if (current_running_processes > max_concurrent_processes)
-            {
-                printf("New Max Concurrent Processes:%i\n\n", current_running_processes);
-                max_concurrent_processes = current_running_processes;
-            }
             if (current_running_processes == MAX_CONCURRENT_PROCESSES)
             {
                 printf("Max number of processes reached: %i\n", MAX_CONCURRENT_PROCESSES);
@@ -341,6 +344,11 @@ void simultate(int month)
                 }
                 commands[i].times_invoked++;
             }
+            if (current_running_processes > max_concurrent_processes)
+            {
+                printf("New Max Concurrent Processes:%i\n\n", current_running_processes);
+                max_concurrent_processes = current_running_processes;
+            }
         }
 
         tm.tm_min++;
@@ -349,7 +357,7 @@ void simultate(int month)
         end_processes(current_time);
         simulation_complete = (tm.tm_mon != month);
     }
-    printf("Total minutes simulated:%i\n", total);
+    printf("\nTotal minutes simulated:%i\n", total);
     printf("Simulation Complete!\n\n");
 }
 
@@ -368,9 +376,10 @@ int main(int argc, char *argv[])
     }
     printf("The month argument ingested is %i\n\n", month);
 
-    process_estimates(argv[3]);
     init_commands();
     init_processes();
+
+    process_estimates(argv[3]);
     process_crontab(argv[2]);
 
     for (int i = 0; i < total_commands; i++)
@@ -388,7 +397,7 @@ int main(int argc, char *argv[])
             most_invoked_command = commands[i];
         }
     }
-    printf("\n\n");
+    printf("\n");
     printf("The command %s ran the most, with %d invocations\n", most_invoked_command.name, most_invoked_command.times_invoked);
     printf("The most number of concurrent processes is %d\n", max_concurrent_processes);
     exit(EXIT_SUCCESS);
