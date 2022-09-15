@@ -10,8 +10,8 @@
 #define NUM_WEEKDAYS 7
 
 #define MAX_LINES 20
-#define MAX_CHARS 100
-#define MAX_NAME_LEN 40
+#define MAX_CHARS 100 + 1   // add 1 for null byte
+#define MAX_NAME_LEN 40 + 1 // add 1 for null byte
 
 #define MAX_NUM_OF_COMMANDS 20
 #define MAX_CONCURRENT_PROCESSES 20
