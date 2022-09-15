@@ -84,10 +84,23 @@ int process_month(char monthStr[])
 }
 int parse_weekdays(char *weekday)
 {
+    // weekday in range (0-6)
     if (isdigit(weekday[0]))
     {
-        return atoi(&weekday[0]);
+        int weekday_num = atoi(weekday);
+        if (weekday_num < 0 || weekday_num > 6)
+        {
+            printf("Invalid weekday: %s\n", weekday);
+            exit(EXIT_FAILURE);
+        }
+        return weekday_num;
     }
+    // all possible values
+    if (weekday[0] == '*')
+    {
+        return -1;
+    }
+    // character representation
     char weekdays[NUM_WEEKDAYS][4] = {"sun", "mon", "tue", "wed", "thu", "fri", "sat"};
     for (int i = 0; i < NUM_WEEKDAYS; i++)
     {
@@ -96,7 +109,9 @@ int parse_weekdays(char *weekday)
             return i;
         }
     }
-    return -1;
+    // No match found; invalid weekday
+    printf("Invalid weekday: %s\n", weekday);
+    exit(EXIT_FAILURE);
 }
 void process_estimates(char *filename)
 {
