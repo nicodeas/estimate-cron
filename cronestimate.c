@@ -42,7 +42,7 @@ struct process
 int total_commands = 0;
 int max_concurrent_processes = 0;
 int current_running_processes = 0;
-int pid = 0;
+int pid = 0; // also used to keep track of total commands executed
 
 struct command commands[MAX_NUM_OF_COMMANDS];
 struct process processes[MAX_ALLOWED_CONCURRENT_PROCESSES];
