@@ -38,7 +38,9 @@ struct process
 
 int total_commands = 0;
 int max_concurrent_processes = 0;
+int current_running_processes = 0;
 int pid = 0;
+
 struct command commands[MAX_NUM_OF_COMMANDS];
 struct process processes[MAX_CONCURRENT_PROCESSES];
 
@@ -272,20 +274,9 @@ void end_processes(time_t current_time)
             printf("%s%s (PID %i) ended!\n\n", ctime(&current_time), processes[i].name, processes[i].pid);
             processes[i].pid = -1;
             memset(&processes[i].end_time, 0, sizeof processes[i].end_time);
+            current_running_processes--;
         }
     }
-}
-int get_num_concurrent_processes()
-{
-    int num_processes = 0;
-    for (int i = 0; i < MAX_CONCURRENT_PROCESSES; i++)
-    {
-        if (!processes[i].ended && processes[i].pid > 0)
-        {
-            num_processes++;
-        }
-    }
-    return num_processes;
 }
 
 void simultate(int month)
@@ -313,13 +304,13 @@ void simultate(int month)
 
         for (int i = 0; i < total_commands; i++)
         {
-            int running_processes = get_num_concurrent_processes();
-            if (running_processes > max_concurrent_processes)
+            int current_running_processes = 0;
+            if (current_running_processes > max_concurrent_processes)
             {
-                printf("New Max Concurrent Processes:%i\n\n", running_processes);
-                max_concurrent_processes = running_processes;
+                printf("New Max Concurrent Processes:%i\n\n", current_running_processes);
+                max_concurrent_processes = current_running_processes;
             }
-            if (running_processes == MAX_CONCURRENT_PROCESSES)
+            if (current_running_processes == MAX_CONCURRENT_PROCESSES)
             {
                 printf("Max number of processes reached: %i\n", MAX_CONCURRENT_PROCESSES);
                 break;
@@ -344,6 +335,7 @@ void simultate(int month)
                         processes[j].pid = pid;
                         processes[j].ended = false;
                         printf("%s%s (PID %i) started!\n\n", ctime(&current_time), processes[j].name, processes[j].pid);
+                        current_running_processes++;
                         break;
                     }
                 }
