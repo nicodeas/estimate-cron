@@ -180,9 +180,9 @@ void process_estimates(char *filename)
         }
         strcpy(commands[total_commands].name, name);
         commands[total_commands].minutes_to_complete = mins;
+        printf("%s:\t\truns for %i minutes\n", commands[total_commands].name, commands[total_commands].minutes_to_complete);
+        total_commands++;
     }
-    printf("%s:\t\truns for %i minutes\n", commands[total_commands].name, commands[total_commands].minutes_to_complete);
-    total_commands++;
     fclose(fp);
     printf("Estimates processed!\n\n");
 }
