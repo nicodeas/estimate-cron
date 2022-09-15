@@ -160,10 +160,29 @@ void process_estimates(char *filename)
         {
             continue;
         }
-        sscanf(buffer, "%s%i", commands[total_commands].name, &commands[total_commands].minutes_to_complete);
-        printf("%s:\t\truns for %i minutes\n", commands[total_commands].name, commands[total_commands].minutes_to_complete);
-        total_commands++;
+        char name[MAX_NAME_LEN];
+        char mins_str[MAX_NAME_LEN];
+        // sscanf(buffer, "%s %s", commands[total_commands].name, &commands[total_commands].minutes_to_complete);
+        sscanf(buffer, "%s %s", name, mins_str);
+        for (int i = 0; i < strlen(mins_str); i++)
+        {
+            if (!isdigit(mins_str[i]))
+            {
+                printf("Invalid mins: %s\n", mins_str);
+                exit(EXIT_FAILURE);
+            }
+        }
+        int mins = atoi(mins_str);
+        if (mins < 0)
+        {
+            printf("Invalid mins: %s\n", mins_str);
+            exit(EXIT_FAILURE);
+        }
+        strcpy(commands[total_commands].name, name);
+        commands[total_commands].minutes_to_complete = mins;
     }
+    printf("%s:\t\truns for %i minutes\n", commands[total_commands].name, commands[total_commands].minutes_to_complete);
+    total_commands++;
     fclose(fp);
     printf("Estimates processed!\n\n");
 }
@@ -180,7 +199,7 @@ void process_crontab(char *filename)
     }
     while (fgets(buffer, MAX_CHARS, fp) != NULL)
     {
-
+        bool command_exists = false;
         char minute[5], hour[5], day[5], month[5], weekday[5], name[MAX_NAME_LEN];
         if (buffer[0] == '#')
         {
@@ -189,7 +208,6 @@ void process_crontab(char *filename)
         sscanf(buffer, "%s %s %s %s %s %s", minute, hour, day, month, weekday, name);
         // in case crontab is not in the same order as estimates
         for (int i = 0; i < total_commands; i++)
-
         {
             if (strcmp(name, commands[i].name) == 0)
             {
@@ -199,6 +217,7 @@ void process_crontab(char *filename)
                 printf("%s\t", month);
                 printf("%s\t", weekday);
                 printf("%s found!\n", name);
+                command_exists = true;
 
                 if (validate_numerical_input(minute, 0, 59))
                 {
@@ -243,6 +262,11 @@ void process_crontab(char *filename)
                 commands[i].week_day = parse_weekdays(weekday);
                 break;
             }
+        }
+        if (!command_exists)
+        {
+            printf("Estimate not found: %s\n", name);
+            exit(EXIT_FAILURE);
         }
     }
     fclose(fp);
