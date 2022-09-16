@@ -167,10 +167,15 @@ void process_estimates(char *filename)
         }
 
         // printf("%s\n", buffer);
-        char name[MAX_NAME_LEN];
-        char mins_str[MAX_NAME_LEN];
+        char name[MAX_NAME_LEN], mins_str[MAX_NAME_LEN], trailing[2];
+        memset(trailing, '\0', sizeof trailing);
         // sscanf(buffer, "%s %s", commands[total_commands].name, &commands[total_commands].minutes_to_complete);
-        sscanf(buffer, "%s %s", name, mins_str);
+        sscanf(buffer, "%s %s %s", name, mins_str, trailing);
+        if (strlen(trailing) > 0)
+        {
+            printf("Invalid Character In Estimtates File: %c\n", trailing[0]);
+            exit(EXIT_FAILURE);
+        }
         for (int i = 0; i < strlen(mins_str); i++)
         {
             if (!isdigit(mins_str[i]))
@@ -201,7 +206,7 @@ void process_crontab(char *filename)
     char buffer[MAX_CHARS];
     if (fp == NULL)
     {
-        printf("Invalid crontab file: %s\n", filename);
+        printf("Invalid Crontab File: %s\n", filename);
         exit(EXIT_FAILURE);
     }
     while (fgets(buffer, MAX_CHARS, fp) != NULL)
@@ -212,12 +217,19 @@ void process_crontab(char *filename)
             exit(EXIT_FAILURE);
         }
         bool command_exists = false;
-        char minute[5], hour[5], day[5], month[5], weekday[5], name[MAX_NAME_LEN];
+        // extra string is used to detect additional trailing strings that should cause program to fail
+        char minute[5], hour[5], day[5], month[5], weekday[5], name[MAX_NAME_LEN], extra[2];
+        memset(extra, '\0', sizeof extra);
         if (buffer[0] == '#')
         {
             continue;
         }
-        sscanf(buffer, "%s %s %s %s %s %s", minute, hour, day, month, weekday, name);
+        sscanf(buffer, "%s %s %s %s %s %s %s", minute, hour, day, month, weekday, name, extra);
+        if (strlen(extra) > 0)
+        {
+            printf("Invalid Character In Crontab File: %c\n", extra[0]);
+            exit(EXIT_FAILURE);
+        }
         // in case crontab is not in the same order as estimates
         for (int i = 0; i < total_commands; i++)
         {
@@ -362,12 +374,8 @@ void simultate(int month)
                     {
                         strcpy(processes[j].name, commands[i].name);
                         struct tm end_time;
-                        memset(&end_time, 0, sizeof end_time);
+                        end_time = tm;
                         end_time.tm_min = tm.tm_min + commands[i].minutes_to_complete;
-                        end_time.tm_mday = tm.tm_mday;
-                        end_time.tm_hour = tm.tm_hour;
-                        end_time.tm_mon = tm.tm_mon;
-                        end_time.tm_year = tm.tm_year;
                         processes[j].end_time = mktime(&end_time);
                         pid++;
                         processes[j].pid = pid;
@@ -418,7 +426,7 @@ int main(int argc, char *argv[])
 
     simultate(month);
     // Override if commands are executed
-    char most_invoked_command[MAX_CHARS] = {"0 Commands Executed"};
+    char most_invoked_command[MAX_CHARS] = {"NULL"};
     int most_invoked = 0;
     for (int i = 0; i < total_commands; i++)
     {
