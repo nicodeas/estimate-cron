@@ -1,3 +1,7 @@
+//  CITS2002 Project 1 2022
+//  Student1:   22719855   MICHLIN   NICHOLAS
+//  Student2:   23126543   CHENG   DANIEL
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -9,12 +13,11 @@
 #define NUM_MONTHS 12
 #define NUM_WEEKDAYS 7
 
-#define MAX_LINES 20
-#define MAX_CHARS 100
-#define MAX_NAME_LEN 40
+#define MAX_CHARS 100 + 1   // add 1 for null byte
+#define MAX_NAME_LEN 40 + 1 // add 1 for null byte
 
 #define MAX_NUM_OF_COMMANDS 20
-#define MAX_CONCURRENT_PROCESSES 20
+#define MAX_ALLOWED_CONCURRENT_PROCESSES 20
 
 struct command
 {
@@ -38,9 +41,11 @@ struct process
 
 int total_commands = 0;
 int max_concurrent_processes = 0;
-int pid = 0;
+int current_running_processes = 0;
+int pid = 0; // also used to keep track of total commands executed
+
 struct command commands[MAX_NUM_OF_COMMANDS];
-struct process processes[MAX_CONCURRENT_PROCESSES];
+struct process processes[MAX_ALLOWED_CONCURRENT_PROCESSES];
 
 int process_month(char monthStr[])
 {
@@ -82,12 +87,26 @@ int process_month(char monthStr[])
     }
     return month;
 }
+
 int parse_weekdays(char *weekday)
 {
+    // weekday in range (0-6)
     if (isdigit(weekday[0]))
     {
-        return atoi(&weekday[0]);
+        int weekday_num = atoi(weekday);
+        if (weekday_num < 0 || weekday_num > 6)
+        {
+            printf("Invalid weekday: %s\n", weekday);
+            exit(EXIT_FAILURE);
+        }
+        return weekday_num;
     }
+    // all possible values
+    if (weekday[0] == '*' && strlen(weekday) == 1)
+    {
+        return -1;
+    }
+    // character representation
     char weekdays[NUM_WEEKDAYS][4] = {"sun", "mon", "tue", "wed", "thu", "fri", "sat"};
     for (int i = 0; i < NUM_WEEKDAYS; i++)
     {
@@ -96,8 +115,35 @@ int parse_weekdays(char *weekday)
             return i;
         }
     }
-    return -1;
+    // No match found; invalid weekday
+    printf("Invalid weekday: %s\n", weekday);
+    exit(EXIT_FAILURE);
 }
+
+bool validate_numerical_input(char *input_str, int lowerbound, int upperbound)
+{
+    if (input_str[0] == '*' && strlen(input_str) == 1)
+    {
+        return true;
+    }
+    for (int i = 0; i < strlen(input_str); i++)
+    {
+        if (!isdigit(input_str[i]))
+        {
+            return false;
+        }
+    }
+    int input = atoi(input_str);
+    if (input < lowerbound || input > upperbound)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
 void process_estimates(char *filename)
 {
     printf("Processing estimates\n");
@@ -105,7 +151,7 @@ void process_estimates(char *filename)
     char buffer[MAX_CHARS];
     if (fp == NULL)
     {
-        printf("invalid %s\n", filename);
+        printf("Invalid estimates file: %s\n", filename);
         exit(EXIT_FAILURE);
     }
     while (fgets(buffer, MAX_CHARS, fp) != NULL)
@@ -114,13 +160,45 @@ void process_estimates(char *filename)
         {
             continue;
         }
-        sscanf(buffer, "%s%i", commands[total_commands].name, &commands[total_commands].minutes_to_complete);
-        printf("%s:\t%i minutes\n", commands[total_commands].name, commands[total_commands].minutes_to_complete);
+        if (buffer[0] == '\n' || buffer[0] == '\r')
+        {
+            printf("Invalid input in: %s\n", filename);
+            exit(EXIT_FAILURE);
+        }
+
+        // printf("%s\n", buffer);
+        char name[MAX_NAME_LEN], mins_str[MAX_NAME_LEN], trailing[2];
+        memset(trailing, '\0', sizeof trailing);
+        // sscanf(buffer, "%s %s", commands[total_commands].name, &commands[total_commands].minutes_to_complete);
+        sscanf(buffer, "%s %s %s", name, mins_str, trailing);
+        if (strlen(trailing) > 0)
+        {
+            printf("Invalid Character In Estimtates File: %c\n", trailing[0]);
+            exit(EXIT_FAILURE);
+        }
+        for (int i = 0; i < strlen(mins_str); i++)
+        {
+            if (!isdigit(mins_str[i]))
+            {
+                printf("Invalid mins: %s\n", mins_str);
+                exit(EXIT_FAILURE);
+            }
+        }
+        int mins = atoi(mins_str);
+        if (mins < 0)
+        {
+            printf("Invalid mins: %s\n", mins_str);
+            exit(EXIT_FAILURE);
+        }
+        strcpy(commands[total_commands].name, name);
+        commands[total_commands].minutes_to_complete = mins;
+        printf("%s:\t\truns for %i minutes\n", commands[total_commands].name, commands[total_commands].minutes_to_complete);
         total_commands++;
     }
     fclose(fp);
-    printf("Processing complete!\n\n");
+    printf("Estimates processed!\n\n");
 }
+
 void process_crontab(char *filename)
 {
     printf("Processing crontab\n");
@@ -128,12 +206,18 @@ void process_crontab(char *filename)
     char buffer[MAX_CHARS];
     if (fp == NULL)
     {
-        printf("invalid %s\n", filename);
+        printf("Invalid Crontab File: %s\n", filename);
         exit(EXIT_FAILURE);
     }
     while (fgets(buffer, MAX_CHARS, fp) != NULL)
     {
-
+        if (buffer[0] == '\n' || buffer[0] == '\r')
+        {
+            printf("Invalid input in: %s\n", filename);
+            exit(EXIT_FAILURE);
+        }
+        bool command_exists = false;
+        // extra string is used to detect additional trailing strings that should cause program to fail
         char minute[5], hour[5], day[5], month[5], weekday[5], name[MAX_NAME_LEN];
         if (buffer[0] == '#')
         {
@@ -142,7 +226,6 @@ void process_crontab(char *filename)
         sscanf(buffer, "%s %s %s %s %s %s", minute, hour, day, month, weekday, name);
         // in case crontab is not in the same order as estimates
         for (int i = 0; i < total_commands; i++)
-
         {
             if (strcmp(name, commands[i].name) == 0)
             {
@@ -152,34 +235,62 @@ void process_crontab(char *filename)
                 printf("%s\t", month);
                 printf("%s\t", weekday);
                 printf("%s found!\n", name);
+                command_exists = true;
 
-                if (minute[0] != '*')
+                if (validate_numerical_input(minute, 0, 59))
                 {
-                    commands[i].minute = atoi(minute);
+                    commands[i].minute = minute[0] == '*' ? -1 : atoi(minute);
                 }
-                if (hour[0] != '*')
+                else
                 {
-                    commands[i].hour = atoi(hour);
+                    printf("Invalid minute: %s\n", minute);
+                    exit(EXIT_FAILURE);
                 }
-                if (day[0] != '*')
+
+                if (validate_numerical_input(hour, 0, 23))
                 {
-                    commands[i].day = atoi(day);
+                    commands[i].hour = hour[0] == '*' ? -1 : atoi(hour);
                 }
-                if (month[0] != '*')
+                else
                 {
-                    commands[i].month = atoi(month);
+                    printf("Invalid hour: %s\n", hour);
+                    exit(EXIT_FAILURE);
                 }
-                if (weekday[i] != '*')
+
+                if (validate_numerical_input(day, 1, 31))
                 {
-                    commands[i].week_day = parse_weekdays(weekday);
+                    commands[i].day = day[0] == '*' ? -1 : atoi(day);
                 }
+                else
+                {
+                    printf("Invalid day: %s\n", day);
+                    exit(EXIT_FAILURE);
+                }
+
+                if (validate_numerical_input(month, 0, 11))
+                {
+                    commands[i].month = month[0] == '*' ? -1 : atoi(month);
+                }
+                else
+                {
+                    printf("Invalid month: %s\n", month);
+                    exit(EXIT_FAILURE);
+                }
+                // parse weekdays has its own error handling
+                commands[i].week_day = parse_weekdays(weekday);
                 break;
             }
+        }
+        if (!command_exists)
+        {
+            printf("Estimate not found: %s\n", name);
+            exit(EXIT_FAILURE);
         }
     }
     fclose(fp);
     printf("Crontab processed!\n\n");
 }
+
 void init_commands()
 {
     for (int i = 0; i < total_commands; i++)
@@ -192,17 +303,19 @@ void init_commands()
         commands[i].times_invoked = 0;
     }
 }
+
 void init_processes()
 {
-    for (int i = 0; i < MAX_CONCURRENT_PROCESSES; i++)
+    for (int i = 0; i < MAX_ALLOWED_CONCURRENT_PROCESSES; i++)
     {
         processes[i].pid = -1;
         processes[i].ended = true;
     }
 }
+
 void end_processes(time_t current_time)
 {
-    for (int i = 0; i < MAX_CONCURRENT_PROCESSES; i++)
+    for (int i = 0; i < MAX_ALLOWED_CONCURRENT_PROCESSES; i++)
     {
 
         if (difftime(processes[i].end_time, current_time) == 0 && !processes[i].ended)
@@ -211,20 +324,9 @@ void end_processes(time_t current_time)
             printf("%s%s (PID %i) ended!\n\n", ctime(&current_time), processes[i].name, processes[i].pid);
             processes[i].pid = -1;
             memset(&processes[i].end_time, 0, sizeof processes[i].end_time);
+            current_running_processes--;
         }
     }
-}
-int get_num_concurrent_processes()
-{
-    int num_processes = 0;
-    for (int i = 0; i < MAX_CONCURRENT_PROCESSES; i++)
-    {
-        if (!processes[i].ended && processes[i].pid > 0)
-        {
-            num_processes++;
-        }
-    }
-    return num_processes;
 }
 
 void simultate(int month)
@@ -252,41 +354,37 @@ void simultate(int month)
 
         for (int i = 0; i < total_commands; i++)
         {
-            int running_processes = get_num_concurrent_processes();
-            if (running_processes > max_concurrent_processes)
+            if (current_running_processes == MAX_ALLOWED_CONCURRENT_PROCESSES)
             {
-                printf("New Max Concurrent Processes:%i\n\n", running_processes);
-                max_concurrent_processes = running_processes;
-            }
-            if (running_processes == MAX_CONCURRENT_PROCESSES)
-            {
-                printf("Max number of processes reached: %i\n", MAX_CONCURRENT_PROCESSES);
+                printf("Max number of processes reached: %i\n", MAX_ALLOWED_CONCURRENT_PROCESSES);
                 break;
             }
             if ((commands[i].week_day == -1 || commands[i].week_day == weekday) && (commands[i].day == -1 || commands[i].day == day) && (commands[i].hour == -1 || commands[i].hour == hour) && (commands[i].minute == -1 || commands[i].minute == minute) && (commands[i].month == -1 || commands[i].month == month))
             {
 
-                for (int j = 0; j < MAX_CONCURRENT_PROCESSES; ++j)
+                for (int j = 0; j < MAX_ALLOWED_CONCURRENT_PROCESSES; ++j)
                 {
                     if (processes[j].ended)
                     {
                         strcpy(processes[j].name, commands[i].name);
                         struct tm end_time;
-                        memset(&end_time, 0, sizeof end_time);
+                        end_time = tm;
                         end_time.tm_min = tm.tm_min + commands[i].minutes_to_complete;
-                        end_time.tm_mday = tm.tm_mday;
-                        end_time.tm_hour = tm.tm_hour;
-                        end_time.tm_mon = tm.tm_mon;
-                        end_time.tm_year = tm.tm_year;
                         processes[j].end_time = mktime(&end_time);
                         pid++;
                         processes[j].pid = pid;
                         processes[j].ended = false;
                         printf("%s%s (PID %i) started!\n\n", ctime(&current_time), processes[j].name, processes[j].pid);
+                        current_running_processes++;
                         break;
                     }
                 }
                 commands[i].times_invoked++;
+            }
+            if (current_running_processes > max_concurrent_processes)
+            {
+                printf("New Max Concurrent Processes:%i\n\n", current_running_processes);
+                max_concurrent_processes = current_running_processes;
             }
         }
 
@@ -296,7 +394,7 @@ void simultate(int month)
         end_processes(current_time);
         simulation_complete = (tm.tm_mon != month);
     }
-    printf("Total minutes simulated:%i\n", total);
+    printf("\nTotal minutes simulated:%i\n", total);
     printf("Simulation Complete!\n\n");
 }
 
@@ -313,30 +411,27 @@ int main(int argc, char *argv[])
         printf("%s: Invalid month: %s\n", argv[0], argv[1]);
         exit(EXIT_FAILURE);
     }
-    printf("The month argument ingested is %i\n\n", month);
 
-    process_estimates(argv[3]);
     init_commands();
     init_processes();
+
+    process_estimates(argv[3]);
     process_crontab(argv[2]);
 
-    for (int i = 0; i < total_commands; i++)
-    {
-        printf("%s runs for %i\t\t mins: %i\t  hours: %i\t days: %i \t month: %i \t weekdays: %i\n", commands[i].name, commands[i].minutes_to_complete, commands[i].minute, commands[i].hour, commands[i].day, commands[i].month, commands[i].week_day);
-    }
-    printf("\n\n");
     simultate(month);
-    struct command most_invoked_command;
+    // Override if commands are executed
+    char most_invoked_command[MAX_CHARS] = {"NULL"};
+    int most_invoked = 0;
     for (int i = 0; i < total_commands; i++)
     {
-        printf("%s ran %i times\n", commands[i].name, commands[i].times_invoked);
-        if (commands[i].times_invoked > most_invoked_command.times_invoked)
+        printf("%s: %i\n", commands[i].name, commands[i].times_invoked);
+        if (commands[i].times_invoked > most_invoked)
         {
-            most_invoked_command = commands[i];
+            most_invoked = commands[i].times_invoked;
+            strcpy(most_invoked_command, commands[i].name);
         }
     }
-    printf("\n\n");
-    printf("The command %s ran the most, with %d invocations\n", most_invoked_command.name, most_invoked_command.times_invoked);
-    printf("The most number of concurrent processes is %d\n", max_concurrent_processes);
+    printf("\n");
+    printf("%s %i %i\n", most_invoked_command, pid, max_concurrent_processes);
     exit(EXIT_SUCCESS);
 }
