@@ -223,7 +223,7 @@ void process_crontab(char *filename)
         {
             continue;
         }
-        sscanf(buffer, "%s %s %s %s %s %s %s", minute, hour, day, month, weekday, name);
+        sscanf(buffer, "%s %s %s %s %s %s", minute, hour, day, month, weekday, name);
         // in case crontab is not in the same order as estimates
         for (int i = 0; i < total_commands; i++)
         {
