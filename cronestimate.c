@@ -218,18 +218,12 @@ void process_crontab(char *filename)
         }
         bool command_exists = false;
         // extra string is used to detect additional trailing strings that should cause program to fail
-        char minute[5], hour[5], day[5], month[5], weekday[5], name[MAX_NAME_LEN], extra[2];
-        memset(extra, '\0', sizeof extra);
+        char minute[5], hour[5], day[5], month[5], weekday[5], name[MAX_NAME_LEN];
         if (buffer[0] == '#')
         {
             continue;
         }
-        sscanf(buffer, "%s %s %s %s %s %s %s", minute, hour, day, month, weekday, name, extra);
-        if (strlen(extra) > 0)
-        {
-            printf("Invalid Character In Crontab File: %c\n", extra[0]);
-            exit(EXIT_FAILURE);
-        }
+        sscanf(buffer, "%s %s %s %s %s %s %s", minute, hour, day, month, weekday, name);
         // in case crontab is not in the same order as estimates
         for (int i = 0; i < total_commands; i++)
         {
