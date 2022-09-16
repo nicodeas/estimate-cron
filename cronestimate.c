@@ -416,22 +416,20 @@ int main(int argc, char *argv[])
     process_estimates(argv[3]);
     process_crontab(argv[2]);
 
-    for (int i = 0; i < total_commands; i++)
-    {
-        printf("%s runs for %i\t\t mins: %i\t  hours: %i\t days: %i \t month: %i \t weekdays: %i\n", commands[i].name, commands[i].minutes_to_complete, commands[i].minute, commands[i].hour, commands[i].day, commands[i].month, commands[i].week_day);
-    }
-    printf("\n\n");
     simultate(month);
-    struct command most_invoked_command;
+    // Override if commands are executed
+    char most_invoked_command[MAX_CHARS] = {"0 Commands Executed"};
+    int most_invoked = 0;
     for (int i = 0; i < total_commands; i++)
     {
         printf("%s: %i\n", commands[i].name, commands[i].times_invoked);
-        if (commands[i].times_invoked > most_invoked_command.times_invoked)
+        if (commands[i].times_invoked > most_invoked)
         {
-            most_invoked_command = commands[i];
+            most_invoked = commands[i].times_invoked;
+            strcpy(most_invoked_command, commands[i].name);
         }
     }
     printf("\n");
-    printf("%s %i %i\n", most_invoked_command.name, pid, max_concurrent_processes);
+    printf("%s %i %i\n", most_invoked_command, pid, max_concurrent_processes);
     exit(EXIT_SUCCESS);
 }
