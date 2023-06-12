@@ -1,3 +1,5 @@
-# CITS2002-PROJECT-1
+# estimate-cron
 
-https://teaching.csse.uwa.edu.au/units/CITS2002/projects/project1.php
+estimate-cron is a tool that checks the correctness of a simplified crontab-file, and determines some simple metrics about the set of commands specified in the file. Metrics include the most invoked job, total number of jobs invoked and the maximum number of concurrent jobs.
+
+This project was built to learn the basics of the C language and Systems Programming in 2022
